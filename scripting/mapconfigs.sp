@@ -166,13 +166,18 @@ void executeAllCommand( )
 
 }
 
+
 void SetCvarString(char[] cvarName, char[] value)
 {
 
-	SetConVarString( FindConVar( cvarName ) , value, true);
+	ConVar cvar = FindConVar(cvarName);
+	if(cvar == null){
+		return false;
+	}
+	
+	cvar.SetString(cvar, value, false);
 
 }
-
 
 void getMapConfigs()
 {
