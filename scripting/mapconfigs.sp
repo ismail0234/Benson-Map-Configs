@@ -172,10 +172,10 @@ void SetCvarString(char[] cvarName, char[] value)
 
 	ConVar cvar = FindConVar(cvarName);
 	if(cvar == null){
-		return false;
+		return;
 	}
 	
-	cvar.SetString(cvar, value, false);
+	cvar.SetString(value, true, true);
 
 }
 
