@@ -150,8 +150,11 @@ void executeAllCommand( )
 
 		commandArray.GetString(i, temp, 128 );		
 		ExplodeString( temp , " ", explode, 2, sizeof(explode[]));
+		if (!explode[0]){
+			continue;
+		}
+		
 		SetCvarString( explode[0] , explode[1] );
-
 	}
 
 }
