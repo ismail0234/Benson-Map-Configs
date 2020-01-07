@@ -150,7 +150,14 @@ void executeAllCommand( )
 
 		commandArray.GetString(i, temp, 128 );		
 		ExplodeString( temp , " ", explode, 2, sizeof(explode[]));
-		if (!explode[0]){
+		
+		if(!explode[1][0]){
+			continue;
+		}
+		
+		TrimString(explode[1]);
+		
+		if (!explode[0][0] || !explode[1][0]){
 			continue;
 		}
 		
