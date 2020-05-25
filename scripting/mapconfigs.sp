@@ -3,261 +3,304 @@
 #pragma newdecls required
 
 #include <sourcemod>
-#include <sdktools>
+#include <sdktools> 
 
-char smPath[ 128 ] , pluginPath[ 128 ] , temp[ 128 ];
-ArrayList commandArray , pluginsArray , modsArray;
-
-public Plugin myinfo = {
+public Plugin myinfo = 
+{
 	name        = "Map | Mod Configs",
 	author      = "BOT Benson",
-	description = "Map | Mod Configs",
-	version     = "1.0.0",
-	url 		= "https://www.botbenson.com"
+	description = "BOT Benson",
+	version     = "v1.0",
+	url         = "https://www.botbenson.com"
 };
 
-public void OnPluginStart()
-{
+char smPath[128], pluginPath[128], temp[128];
+ArrayList commandList, pluginsList, modsList;
 
-	BuildPath(Path_SM, smPath, 128, "configs/pluginler/map-cfg/");
+/**
+ *
+ * Eklenti başlatıldığında tetiklenir.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+public void OnPluginStart() 
+{ 
+	BuildPath(Path_SM, smPath, 128, "configs/map-cfg/");
 	BuildPath(Path_SM, pluginPath, 128, "plugins/");
+} 
 
-}
-
+/**
+ *
+ * Harita başlamadan önce ayarları uygular
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
 public void OnAutoConfigsBuffered()
 {
-
 	ExecuteMapSpecificConfigs();
-
 }
 
+/**
+ *
+ * Harita ayarlarını uygular.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
 bool ExecuteMapSpecificConfigs() 
 {
-	
-	commandArray = new ArrayList( 196 );
-	pluginsArray = new ArrayList( 196 );
-	modsArray    = new ArrayList( 96 );
+	commandList = new ArrayList(128);
+	pluginsList = new ArrayList(196);
+	modsList    = new ArrayList(96);
 
-	setDefaultPlugins( );
+	setDefaultPlugins();
 
-	getMapConfigs();
+	FindMapConfigs();
 
-	int size = modsArray.Length;
-
-	char path[196];
-
-	for (int i = 0; i < size; ++i) 
+	if(modsList.Length == 0) 
 	{
-
-		modsArray.GetString(i, temp, 128 );		
-
-		Format( path , 196 , "%s%s" , smPath , temp );
-		commandAndPluginResult( path );
-
-		pluginsAllRelease( );
-		executeAllCommand( );	
-
+		PluginsAllRelease();
+		return true;
 	}
 
-	if( size == 0 )
-		pluginsAllRelease();
+	char path[196];
+	for (int i = 0; i < modsList.Length; i++) 
+	{
+		modsList.GetString(i, temp, sizeof(temp));		
+
+		Format(path, sizeof(path), "%s%s", smPath, temp);
+		CommandAndPluginResult(path);
+		
+		PluginsAllRelease();
+		ExecuteAllCommand();	
+	}
 
 	return true;
 }
 
-void pluginsAllRelease( ) 
+/**
+ *
+ * Varsayılan eklentileri belirler
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void setDefaultPlugins()
 {
-
-	DirectoryListing directory = OpenDirectory( pluginPath );
-	
-	if( directory == null) 
-		return;
-
-	char buffer[128] , newPath[128] , oldPath[128];
-
-	FileType filetype;
-	while ( directory.GetNext(buffer, sizeof(buffer), filetype) )
-	{
-
-		if( filetype != FileType_File || buffer[0] == 0 || StrEqual( buffer , "disabled" ) || StrEqual( buffer , "." ) ||  StrEqual( buffer , ".." ))
-			continue;
-
-		ReplaceString(buffer, sizeof(buffer), ".smx", "");
-		int find =  pluginsArray.FindString( buffer );
-		if( find == -1 )
-		{
-
-			Format( newPath , 128 , "%sdisabled/%s.smx" , pluginPath , buffer );
-			Format( oldPath , 128 , "%s%s.smx" , pluginPath , buffer );
-
-			RenameFile( newPath , oldPath );
-			ServerCommand("sm plugins unload %s.smx", buffer);
-
-		}
-		else
-		{
-
-			pluginsArray.Erase( find );
-
-		}
-
-	}
-	int size = pluginsArray.Length;
-	for( int i = 0; i < size; i++)
-	{
-
-		pluginsArray.GetString(i, temp, 128 );		
-		Format( newPath , 128 , "%s%s.smx" , pluginPath , temp );
-		Format( oldPath , 128 , "%sdisabled/%s.smx" , pluginPath , temp );
-
-		if( !FileExists( oldPath )  )
-			continue;
-
-		RenameFile( newPath , oldPath );
-		ServerCommand("sm plugins load %s.smx", temp);
-
-	}
-
+	pluginsList.PushString("admin-flatfile");
+	pluginsList.PushString("adminhelp");
+	pluginsList.PushString("adminmenu");
+	pluginsList.PushString("antiflood");
+	pluginsList.PushString("basebans");
+	pluginsList.PushString("basechat");
+	pluginsList.PushString("basecomm");
+	pluginsList.PushString("basecommands");
+	pluginsList.PushString("basetriggers");
+	pluginsList.PushString("basevotes");
+	pluginsList.PushString("clientprefs");
+	pluginsList.PushString("funcommands");
+	pluginsList.PushString("funvotes");
+	pluginsList.PushString("playercommands");
+	pluginsList.PushString("mapconfigs");
 }
 
-void setDefaultPlugins( )
+/**
+ *
+ * Map/Mod Config dosyalarını Bulur.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool FindMapConfigs()
 {
 
-	pluginsArray.PushString( "mapconfigs" );
-	pluginsArray.PushString( "adminmenu" );
-	pluginsArray.PushString( "admin-flatfile" );
-	pluginsArray.PushString( "antiflood" );
-	pluginsArray.PushString( "basebans" );
-	pluginsArray.PushString( "basechat" );
-	pluginsArray.PushString( "basecomm" );
-	pluginsArray.PushString( "basecommands" );
-	pluginsArray.PushString( "basevotes" );
-	pluginsArray.PushString( "funcommands" );
-	pluginsArray.PushString( "funvotes" );
-	pluginsArray.PushString( "playercommands" );
-
-
-}
-
-void executeAllCommand( )
-{
-
-	char explode[2][96];
-
-	int size = commandArray.Length;
-	for( int i = 0; i < size; i++ )
-	{
-
-		commandArray.GetString(i, temp, 128 );		
-		ExplodeString( temp , " ", explode, 2, sizeof(explode[]));
-		
-		if(!explode[1][0]){
-			continue;
-		}
-		
-		TrimString(explode[1]);
-		
-		if (!explode[0][0] || !explode[1][0]){
-			continue;
-		}
-		
-		SetCvarString( explode[0] , explode[1] );
-	}
-
-}
-
-
-void SetCvarString(char[] cvarName, char[] value)
-{
-
-	ConVar cvar = FindConVar(cvarName);
-	if(cvar == null){
-		return;
-	}
-	
-	cvar.SetString(value, true, true);
-
-}
-
-void getMapConfigs()
-{
-
-	char currentMap[256] , configFile[256] , explode[2][64];
-	GetCurrentMap(currentMap, 256 );
+	char currentMap[128], configFile[128], file[2][64];
+	GetCurrentMap(currentMap, sizeof(currentMap));
 
 	int mapSepPos = FindCharInString(currentMap, '/', true);
-	if (mapSepPos != -1)
-		strcopy(currentMap, 256 , currentMap[mapSepPos+1]);
+	if (mapSepPos != -1) {
+		strcopy(currentMap, sizeof(currentMap), currentMap[mapSepPos + 1]);
+	}
 
-	Handle dir = OpenDirectory(smPath);
-	
-	if (dir == INVALID_HANDLE)
-		return;
+	DirectoryListing directory = OpenDirectory(smPath);
+	if (directory == null) {
+		delete directory;
+		return false;
+	}
 
 	FileType fileType;
-	
-	while (ReadDirEntry(dir, configFile, 256 , fileType)) 
+	while (directory.GetNext(configFile, sizeof(configFile), fileType))
 	{
 		if (fileType == FileType_File) 
 		{
-			
-			ExplodeString(configFile, ".", explode, 2, sizeof(explode[]));
-			
-			if (StrEqual(explode[1], "cfg", false)) 
+			ExplodeString(configFile, ".", file, 2, sizeof(file[]));
+			if (StrEqual(file[1], "cfg", false)) 
 			{
-				
-				if (strncmp(currentMap, explode[0], strlen(explode[0]), false) == 0) 
+				if (strncmp(currentMap, file[0], strlen(file[0]), false) == 0) 
 				{
-					modsArray.PushString( configFile );
+					modsList.PushString(configFile);
 				}
 			}
 		}
 	}
-	
-	CloseHandle(dir);
-	
+
+	delete directory;
+	return true;
 }
 
-void commandAndPluginResult(char[] _file)
+/**
+ *
+ * Config dosyasını bulur ve ayarları yükler.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool CommandAndPluginResult(char[] configFilePath)
 {
-
-	char buffer[128] , explode[2][128];
-
-	Handle fileh = OpenFile(_file, "r");
-	
-	if(fileh == INVALID_HANDLE) 
-		return;
-
-	int len;
-	while (!IsEndOfFile(fileh) && ReadFileLine(fileh, buffer, sizeof(buffer)))
-	{
-
-		len = strlen(buffer);
-		if (buffer[len-1] == '\n')
-			buffer[--len] = '\0';
-
-		TrimString(buffer);
-
-		if( buffer[0] == 0 )
-			continue;
-
-		ExplodeString( buffer , " ", explode, 2, sizeof(explode[]));
-
-		if( StrEqual( explode[0] , "sm_eklenti_aktif" ) )
-		{
-
-			pluginsArray.PushString( explode[1] );
-
-		}
-		else if( explode[0][0] != 0 && explode[1][0] != 0  )
-		{
-
-			commandArray.PushString( buffer );
-
-		}
-
+	File file = OpenFile(configFilePath, "r");
+	if(file == null)  {
+		return false;
 	}
 
-	if(fileh != INVALID_HANDLE)
-		CloseHandle(fileh);
+	int len;
+	char command[2][128];
+
+    while (!file.EndOfFile() && file.ReadLine(temp, sizeof(temp)))
+    {
+		len = strlen(temp);
+		if (temp[len - 1] == '\n'){
+			temp[--len] = '\0';
+		}
+
+		TrimString(temp);
+		if(temp[0] == 0) {
+			continue;
+		}
+
+		ExplodeString(temp, " ", command, 2, sizeof(command[]));
+
+		TrimString(command[0]);
+		TrimString(command[1]);
+
+		if(StrEqual(command[0], "sm_active_plugin"))
+		{
+			pluginsList.PushString(command[1]);
+		}
+		else if(command[0][0] != 0 && command[1][0] != 0)
+		{
+			commandList.PushString(temp);
+		}
+    }
+
+    delete file;
+    return true;
+}
+
+/**
+ *
+ * Komutların hepsini çalıştırır.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void ExecuteAllCommand()
+{
+	char command[2][96];
+	for(int i = 0; i < commandList.Length; i++)
+	{
+		commandList.GetString(i, temp, 96);		
+		ExplodeString(temp, " ", command, 2, sizeof(command[]));
+		
+		if(!command[1][0]){
+			continue;
+		}
+		
+		TrimString(command[0]);
+		TrimString(command[1]);
+		
+		if (!command[0][0] || !command[1][0]){
+			continue;
+		}
+		
+		SetCvarString(command[0], command[1]);
+	}
+}
+
+/**
+ *
+ * Cvar Değerini değiştirir.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool SetCvarString(char[] cvarName, char[] value)
+{
+
+	ConVar cvar = FindConVar(cvarName);
+	if(cvar == null){
+		return false;
+	}
+	
+	cvar.SetString(value, true, true);
+	return true;
+}
+
+/**
+ *
+ * Pluginleri Gerekli klasörlere taşır ve aktif/pasif yapar.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool PluginsAllRelease() 
+{
+	DirectoryListing directory = OpenDirectory(pluginPath);
+	if(directory == null) {
+		return false;
+	}
+
+	char newPath[128], oldPath[128];
+
+	FileType filetype;
+	while (directory.GetNext(temp, sizeof(temp), filetype))
+	{
+		if(filetype != FileType_File || temp[0] == 0 || StrEqual(temp, "disabled") || StrEqual(temp, ".") ||  StrEqual(temp , "..")) {
+			continue;
+		}
+
+		ReplaceString(temp, sizeof(temp), ".smx", "");
+
+		int find = pluginsList.FindString(temp);
+		if(find != -1) 
+		{
+			pluginsList.Erase(find);
+		}
+		else 
+		{
+			Format(newPath, sizeof(newPath), "%sdisabled/%s.smx", pluginPath, temp);
+			Format(oldPath, sizeof(oldPath), "%s%s.smx", pluginPath, temp);		
+
+			RenameFile(newPath, oldPath);
+			ServerCommand("sm plugins unload %s.smx", temp);
+		}
+	}
+
+	for(int i = 0; i < pluginsList.Length; i++)
+	{
+
+		pluginsList.GetString(i, temp, sizeof(temp));		
+		Format(newPath, sizeof(newPath), "%s%s.smx", pluginPath, temp);
+		Format(oldPath, sizeof(oldPath), "%sdisabled/%s.smx", pluginPath, temp);
+
+		if(!FileExists(oldPath)) {
+			continue;
+		}
+
+		RenameFile(newPath,oldPath);
+		ServerCommand("sm plugins load %s.smx", temp);
+	}
+
+	return true;
 }
