@@ -10,7 +10,7 @@ public Plugin myinfo =
 	name        = "Map | Mod Configs",
 	author      = "BOT Benson",
 	description = "BOT Benson",
-	version     = "v2.0.1",
+	version     = "v2.0.2",
 	url         = "https://www.botbenson.com"
 };
 
@@ -346,7 +346,13 @@ bool CommandAndPluginResult(char[] configFilePath)
 		}
 
 		TrimString(temp);
-		if(temp[0] == 0) {
+		if(temp[0] == 0) 
+		{
+			continue;
+		}
+
+		if(temp[0] == '/' || temp[1] == '/')
+		{
 			continue;
 		}
 
@@ -436,13 +442,14 @@ bool PluginsAllRelease()
 				if(folderIndex != -1)
 				{
 					folderList.Erase(folderIndex);
+	
 				}
 				else
 				{
 					PluginFolderSetPassive(temp);
+	
 				}
 			}
-
 		}
 		else if(filetype == FileType_File)
 		{
@@ -452,11 +459,17 @@ bool PluginsAllRelease()
 				if(pluginIndex != -1) 
 				{
 					pluginsList.Erase(pluginIndex);
+	
 				}
 				else 
 				{
 					PluginSetPassive(temp);
+	
 				}
+			}
+			else
+			{
+
 			}
 		}
 	}
