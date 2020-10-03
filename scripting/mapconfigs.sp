@@ -14,8 +14,8 @@ public Plugin myinfo =
 	url         = "https://www.botbenson.com"
 };
 
-char smPath[128], pluginPath[128], temp[128];
-ArrayList commandList, pluginsList, modsList;
+char smPath[128], pluginPath[128], temp[128], subTemp[128], subFolder[128],  newPath[128], oldPath[128];
+ArrayList commandList, pluginsList, modsList, folderList;
 
 /**
  *
@@ -44,6 +44,201 @@ public void OnAutoConfigsBuffered()
 
 /**
  *
+ * Varsayılan eklentileri belirler
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void SetDefaultPlugins()
+{
+	pluginsList.PushString("admin-flatfile");
+	pluginsList.PushString("adminhelp");
+	pluginsList.PushString("adminmenu");
+	pluginsList.PushString("antiflood");
+	pluginsList.PushString("basebans");
+	pluginsList.PushString("basechat");
+	pluginsList.PushString("basecomm");
+	pluginsList.PushString("basecommands");
+	pluginsList.PushString("basetriggers");
+	pluginsList.PushString("basevotes");
+	pluginsList.PushString("clientprefs");
+	pluginsList.PushString("funcommands");
+	pluginsList.PushString("funvotes");
+	pluginsList.PushString("playercommands");
+	pluginsList.PushString("mapconfigs");
+	pluginsList.PushString("mapconfigs-v2");
+}
+
+/**
+ *
+ * Varsayılan modları belirler
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void SetDefaultFolders()
+{
+	
+}
+
+/**
+ *
+ * Cvar Değerini değiştirir.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool SetCvarString(char[] cvarName, char[] value)
+{
+
+	ConVar cvar = FindConVar(cvarName);
+	if(cvar == null){
+		return false;
+	}
+	
+	cvar.SetString(value, true, true);
+	return true;
+}
+
+/**
+ *
+ * Dosyanın geçerlilğini kontrol eder.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+stock bool CheckIsContinueFile(char[] name, int length, bool isPlugin = false)
+{
+	if(name[0] == 0 || StrEqual(name, ".") ||  StrEqual(name , "..")) 
+	{
+		return false;
+	}
+
+	if(isPlugin && !StrContains(name, ".smx")) 
+	{
+		return false;
+	}
+
+	ReplaceString(name, length, ".smx", "");
+	return true;
+}
+
+/**
+ *
+ * Eklentiyi Aktif Yapar
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool PluginSetActive(char[] name, bool moveFile = true)
+{
+	Format(newPath, sizeof(newPath), "%s%s.smx", pluginPath, name);
+	Format(oldPath, sizeof(oldPath), "%sdisabled/%s.smx", pluginPath, name);
+
+	if(!FileExists(oldPath)) 
+	{
+		return false;
+	}
+
+	if(moveFile)
+	{
+		RenameFile(newPath, oldPath);
+	}
+	ServerCommand("sm plugins load %s.smx", name);
+	return true;
+}
+
+/**
+ *
+ * Eklentiyi pasif yapar.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+bool PluginSetPassive(char[] name, bool moveFile = true)
+{
+	Format(newPath, sizeof(newPath), "%sdisabled/%s.smx", pluginPath, name);
+	Format(oldPath, sizeof(oldPath), "%s%s.smx", pluginPath, name);		
+
+	if(!FileExists(oldPath)) 
+	{
+		return false;
+	}
+
+	ServerCommand("sm plugins unload %s.smx", name);
+	if(moveFile)
+	{
+		RenameFile(newPath, oldPath);
+	}
+	return true;
+}
+	
+/**
+ *
+ * Eklenti klasörünü pasif yapar.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void PluginFolderSetPassive(char[] folder)
+{
+	Format(subFolder, sizeof(subFolder), "%s%s", pluginPath, folder);
+
+	DirectoryListing directory = OpenDirectory(subFolder);
+	if(directory != null) 
+	{
+		FileType filetype;
+		while (directory.GetNext(subTemp, sizeof(subTemp), filetype))
+		{
+			if(CheckIsContinueFile(subTemp, sizeof(temp), true)) 
+			{
+				Format(subTemp, sizeof(subTemp), "%s/%s", folder, subTemp);
+				ServerCommand("sm plugins unload %s.smx", subTemp);
+			}
+		}
+
+		Format(newPath, sizeof(newPath), "%sdisabled/%s", pluginPath, folder);
+		RenameFile(newPath, subFolder);
+
+		delete directory;
+	}
+}
+
+/**
+ *
+ * Eklenti klasörünü aktif yapar.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+void PluginFolderSetActive(char[] folder)
+{
+	Format(oldPath, sizeof(oldPath), "%sdisabled/%s/", pluginPath, folder);
+	Format(newPath, sizeof(newPath), "%s%s/", pluginPath, folder);
+	if(DirExists(oldPath))
+	{
+		RenameFile(newPath, oldPath);
+
+		DirectoryListing directory = OpenDirectory(newPath);
+		if(directory != null) 
+		{
+			FileType filetype;
+			while (directory.GetNext(subTemp, sizeof(subTemp), filetype))
+			{
+				if(CheckIsContinueFile(subTemp, sizeof(temp), true)) 
+				{
+					Format(newPath, sizeof(newPath), "%s/%s", folder, subTemp);
+					ServerCommand("sm plugins load %s.smx", newPath);
+				}
+			}
+
+			delete directory;
+		}	
+	}
+}
+
+/**
+ *
  * Harita ayarlarını uygular.
  *
  * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
@@ -54,8 +249,10 @@ bool ExecuteMapSpecificConfigs()
 	commandList = new ArrayList(128);
 	pluginsList = new ArrayList(196);
 	modsList    = new ArrayList(96);
+	folderList  = new ArrayList(96);
 
-	setDefaultPlugins();
+	SetDefaultPlugins();
+	SetDefaultFolders();
 
 	FindMapConfigs();
 
@@ -78,32 +275,6 @@ bool ExecuteMapSpecificConfigs()
 	}
 
 	return true;
-}
-
-/**
- *
- * Varsayılan eklentileri belirler
- *
- * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
- *
- */
-void setDefaultPlugins()
-{
-	pluginsList.PushString("admin-flatfile");
-	pluginsList.PushString("adminhelp");
-	pluginsList.PushString("adminmenu");
-	pluginsList.PushString("antiflood");
-	pluginsList.PushString("basebans");
-	pluginsList.PushString("basechat");
-	pluginsList.PushString("basecomm");
-	pluginsList.PushString("basecommands");
-	pluginsList.PushString("basetriggers");
-	pluginsList.PushString("basevotes");
-	pluginsList.PushString("clientprefs");
-	pluginsList.PushString("funcommands");
-	pluginsList.PushString("funvotes");
-	pluginsList.PushString("playercommands");
-	pluginsList.PushString("mapconfigs");
 }
 
 /**
@@ -188,6 +359,10 @@ bool CommandAndPluginResult(char[] configFilePath)
 		{
 			pluginsList.PushString(command[1]);
 		}
+		else if(StrEqual(command[0], "sm_active_mode"))
+		{
+			folderList.PushString(command[1]);
+		}
 		else if(command[0][0] != 0 && command[1][0] != 0)
 		{
 			commandList.PushString(temp);
@@ -228,24 +403,7 @@ void ExecuteAllCommand()
 	}
 }
 
-/**
- *
- * Cvar Değerini değiştirir.
- *
- * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
- *
- */
-bool SetCvarString(char[] cvarName, char[] value)
-{
 
-	ConVar cvar = FindConVar(cvarName);
-	if(cvar == null){
-		return false;
-	}
-	
-	cvar.SetString(value, true, true);
-	return true;
-}
 
 /**
  *
@@ -257,50 +415,64 @@ bool SetCvarString(char[] cvarName, char[] value)
 bool PluginsAllRelease() 
 {
 	DirectoryListing directory = OpenDirectory(pluginPath);
-	if(directory == null) {
+	if(directory == null) 
+	{
 		return false;
 	}
-
-	char newPath[128], oldPath[128];
 
 	FileType filetype;
 	while (directory.GetNext(temp, sizeof(temp), filetype))
 	{
-		if(filetype != FileType_File || temp[0] == 0 || StrEqual(temp, "disabled") || StrEqual(temp, ".") ||  StrEqual(temp , "..")) {
+		if(StrEqual(temp, "disabled")) 
+		{
 			continue;
 		}
 
-		ReplaceString(temp, sizeof(temp), ".smx", "");
-
-		int find = pluginsList.FindString(temp);
-		if(find != -1) 
+		if(filetype == FileType_Directory)
 		{
-			pluginsList.Erase(find);
+			if(CheckIsContinueFile(temp, sizeof(temp)))
+			{
+				int folderIndex = folderList.FindString(temp);
+				if(folderIndex != -1)
+				{
+					folderList.Erase(folderIndex);
+				}
+				else
+				{
+					PluginFolderSetPassive(temp);
+				}
+			}
+
 		}
-		else 
+		else if(filetype == FileType_File)
 		{
-			Format(newPath, sizeof(newPath), "%sdisabled/%s.smx", pluginPath, temp);
-			Format(oldPath, sizeof(oldPath), "%s%s.smx", pluginPath, temp);		
-
-			RenameFile(newPath, oldPath);
-			ServerCommand("sm plugins unload %s.smx", temp);
+			if(CheckIsContinueFile(temp, sizeof(temp), true))
+			{
+				int pluginIndex = pluginsList.FindString(temp);
+				if(pluginIndex != -1) 
+				{
+					pluginsList.Erase(pluginIndex);
+				}
+				else 
+				{
+					PluginSetPassive(temp);
+				}
+			}
 		}
 	}
 
 	for(int i = 0; i < pluginsList.Length; i++)
 	{
-
-		pluginsList.GetString(i, temp, sizeof(temp));		
-		Format(newPath, sizeof(newPath), "%s%s.smx", pluginPath, temp);
-		Format(oldPath, sizeof(oldPath), "%sdisabled/%s.smx", pluginPath, temp);
-
-		if(!FileExists(oldPath)) {
-			continue;
-		}
-
-		RenameFile(newPath,oldPath);
-		ServerCommand("sm plugins load %s.smx", temp);
+		pluginsList.GetString(i, temp, sizeof(temp));
+		PluginSetActive(temp);
 	}
 
+	for(int i = 0; i < folderList.Length; i++)
+	{
+		folderList.GetString(i, temp, sizeof(temp));
+		PluginFolderSetActive(temp);
+	}
+
+	delete directory;
 	return true;
 }
