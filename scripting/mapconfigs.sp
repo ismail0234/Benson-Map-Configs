@@ -10,7 +10,7 @@ public Plugin myinfo =
 	name        = "Map | Mod Configs",
 	author      = "BOT Benson",
 	description = "BOT Benson",
-	version     = "v1.0",
+	version     = "v2.0.1",
 	url         = "https://www.botbenson.com"
 };
 
