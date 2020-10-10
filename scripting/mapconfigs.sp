@@ -10,7 +10,7 @@ public Plugin myinfo =
 	name        = "Map | Mod Configs",
 	author      = "BOT Benson",
 	description = "BOT Benson",
-	version     = "v2.0.2",
+	version     = "v2.0.3",
 	url         = "https://www.botbenson.com"
 };
 
@@ -28,6 +28,8 @@ public void OnPluginStart()
 { 
 	BuildPath(Path_SM, smPath, 128, "configs/map-cfg/");
 	BuildPath(Path_SM, pluginPath, 128, "plugins/");
+
+	ExecuteMapSpecificConfigs();
 } 
 
 /**
@@ -341,17 +343,13 @@ bool CommandAndPluginResult(char[] configFilePath)
     while (!file.EndOfFile() && file.ReadLine(temp, sizeof(temp)))
     {
 		len = strlen(temp);
-		if (temp[len - 1] == '\n'){
+		if (temp[len - 1] == '\n')
+		{
 			temp[--len] = '\0';
 		}
 
 		TrimString(temp);
-		if(temp[0] == 0) 
-		{
-			continue;
-		}
-
-		if(temp[0] == '/' || temp[1] == '/')
+		if(temp[0] == 0 || temp[0] == '/' || temp[1] == '/') 
 		{
 			continue;
 		}
@@ -369,7 +367,7 @@ bool CommandAndPluginResult(char[] configFilePath)
 		{
 			folderList.PushString(command[1]);
 		}
-		else if(command[0][0] != 0 && command[1][0] != 0)
+		else
 		{
 			commandList.PushString(temp);
 		}
@@ -388,28 +386,36 @@ bool CommandAndPluginResult(char[] configFilePath)
  */
 void ExecuteAllCommand()
 {
-	char command[2][96];
+	char command[2][256];
 	for(int i = 0; i < commandList.Length; i++)
 	{
-		commandList.GetString(i, temp, 96);		
+		commandList.GetString(i, temp, 256);		
 		ExplodeString(temp, " ", command, 2, sizeof(command[]));
 		
-		if(!command[1][0]){
+		if(!command[1][0])
+		{
 			continue;
 		}
 		
 		TrimString(command[0]);
 		TrimString(command[1]);
 		
-		if (!command[0][0] || !command[1][0]){
+		if (!command[0][0] || !command[1][0])
+		{
 			continue;
 		}
-		
-		SetCvarString(command[0], command[1]);
+
+		ReplaceString(temp, sizeof temp, command[0], "");
+		TrimString(temp);
+		StripQuotes(temp);
+		if(temp[0] == 0)
+		{
+			continue;
+		}
+
+		SetCvarString(command[0], temp);
 	}
 }
-
-
 
 /**
  *
@@ -464,12 +470,7 @@ bool PluginsAllRelease()
 				else 
 				{
 					PluginSetPassive(temp);
-	
 				}
-			}
-			else
-			{
-
 			}
 		}
 	}
