@@ -10,7 +10,7 @@ public Plugin myinfo =
 	name        = "Map | Mod Configs",
 	author      = "BOT Benson",
 	description = "BOT Benson",
-	version     = "v2.0.3",
+	version     = "v2.0.4",
 	url         = "https://www.botbenson.com"
 };
 
@@ -31,6 +31,31 @@ public void OnPluginStart()
 
 	ExecuteMapSpecificConfigs();
 } 
+
+/**
+ *
+ * Harita başlatıldığında tetiklenir.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+public void OnMapStart() 
+{ 
+	CreateTimer(0.5, Timer_OnMapStart, _, TIMER_FLAG_NO_MAPCHANGE);
+} 
+
+/**
+ *
+ * Sunucu IP Adresini Önbelleğe alır.
+ *
+ * @author Ismail Satilmis <ismaiil_0234@hotmail.com>
+ *
+ */
+public Action Timer_OnMapStart(Handle timer)
+{
+	ExecuteAllCommand();
+	return Plugin_Stop;
+}
 
 /**
  *
@@ -273,7 +298,6 @@ bool ExecuteMapSpecificConfigs()
 		CommandAndPluginResult(path);
 		
 		PluginsAllRelease();
-		ExecuteAllCommand();	
 	}
 
 	return true;
